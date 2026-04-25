@@ -24,32 +24,39 @@ public sealed class MovementPacketHandler
     {
         if (!session.PlayerId.HasValue)
         {
-            _logger.LogWarning("MoveRequest ignorado: no hay player activo.");
+            SendMoveResponse(stream, 0, 0, false);
             return;
         }
 
         if (packet.Length < 6)
         {
-            _logger.LogWarning("MoveRequest inválido: paquete demasiado corto.");
+            SendMoveResponse(stream, 0, 0, false);
             return;
         }
 
         if (subCode != 0x01 && subCode != 0x10)
         {
-            _logger.LogDebug("SubCode D4 no manejado: {SubCode:X2}", subCode);
+            _logger.LogWarning("Move subCode no soportado: {SubCode:X2}", subCode);
+            SendMoveResponse(stream, 0, 0, false);
             return;
         }
 
-        var player = _worldManager.GetPlayer(session.PlayerId.Value);
+        Player? player = _worldManager.GetPlayer(session.PlayerId.Value);
         if (player is null)
         {
-            _logger.LogWarning("MoveRequest ignorado: player no existe en WorldManager.");
+            SendMoveResponse(stream, 0, 0, false);
             return;
         }
 
-        byte mapId = player.CurrentMapId;
         byte targetX = packet[4];
         byte targetY = packet[5];
+        byte mapId = player.CurrentMapId;
+
+        if (player.X == targetX && player.Y == targetY)
+        {
+            SendMoveResponse(stream, targetX, targetY, true);
+            return;
+        }
 
         _movementService.SetMoveTarget(
             session.PlayerId.Value,
@@ -63,5 +70,19 @@ public sealed class MovementPacketHandler
             mapId,
             targetX,
             targetY);
+    }
+
+    private static void SendMoveResponse(NetworkStream stream, byte x, byte y, bool success)
+    {
+        byte[] response =
+        {
+            0xC1, 0x06,
+            0xD4,
+            (byte)(success ? 0x01 : 0x00),
+            x,
+            y
+        };
+
+        stream.Write(response, 0, response.Length);
     }
 }

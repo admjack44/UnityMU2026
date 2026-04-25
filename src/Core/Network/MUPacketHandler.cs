@@ -37,6 +37,8 @@ public sealed class MUPacketHandler
     private readonly InventoryPacketHandler _inventoryHandler;
     private readonly WorldItemPacketHandler _worldItemHandler;
 
+    private readonly CharacterPacketHandler _characterHandler;
+
     public MUPacketHandler(
         ILogger logger,
         CharacterService characterService,
@@ -72,6 +74,13 @@ public sealed class MUPacketHandler
         _worldItemHandler = new WorldItemPacketHandler(
             worldManager,
             NullLogger<WorldItemPacketHandler>.Instance);
+
+        _characterHandler = new CharacterPacketHandler(
+            characterService,
+            worldManager,
+            monsterManager,
+            broadcastService,
+            NullLogger<CharacterPacketHandler>.Instance);
     }
 
     public async Task ProcessClientAsync(TcpClient client)
@@ -224,11 +233,14 @@ public sealed class MUPacketHandler
         switch (code)
         {
             case 0x00:
-                HandleLogin(stream, session);
+                _characterHandler.HandleLogin(stream, session);
                 break;
 
             case 0xF3:
-                HandleCharacterPacket(subCode, packet, stream, session);
+                if (subCode == 0x31)
+                    _inventoryHandler.HandleMoveItem(packet, stream, session);
+                else
+                    _characterHandler.Handle(subCode, packet, stream, session);
                 break;
 
             case 0xF4:

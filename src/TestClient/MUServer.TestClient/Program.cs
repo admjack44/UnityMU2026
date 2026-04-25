@@ -45,7 +45,7 @@ internal static class Program
         await Task.Delay(500);
 
         Console.WriteLine("\n--- MOVER PERSONAJE CERCA DEL GOBLIN ---");
-        await SendPacketAsync(stream, new byte[] { 0xC1, 0x06, 0xD4, 0x01, 139, 120 });
+        await SendPacketAsync(stream, new byte[] { 0xC1, 0x06, 0xD4, 0x01, 141, 138 });
 
         await Task.Delay(300);
 
@@ -365,7 +365,7 @@ internal static class Program
     {
         byte result = packet[3];
 
-        if (result == 0x00)
+        if (result == 0x01)
         {
             Console.WriteLine($"✔ Move OK -> {packet[4]},{packet[5]}");
         }

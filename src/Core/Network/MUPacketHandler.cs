@@ -444,18 +444,25 @@ public sealed class MUPacketHandler
             return;
         }
 
-        if (packet.Length < 7)
+        if (packet.Length < 6)
         {
             _logger.LogWarning("MoveRequest inválido: paquete demasiado corto.");
             SendMoveResponse(stream, 0, 0, false);
             return;
         }
 
-        byte mapId = packet[4];
-        byte targetX = packet[5];
-        byte targetY = packet[6];
+        var player = _worldManager.GetPlayer(session.PlayerId.Value);
+        if (player is null)
+        {
+            SendMoveResponse(stream, 0, 0, false);
+            return;
+        }
 
-        if (subCode != 0x10)
+        byte mapId = player.CurrentMapId;
+        byte targetX = packet[4];
+        byte targetY = packet[5];
+
+        if (subCode != 0x01 && subCode != 0x10)
         {
             _logger.LogDebug("SubCode D4 no manejado: {SubCode:X2}", subCode);
             return;
@@ -980,7 +987,7 @@ public sealed class MUPacketHandler
         var response = new byte[]
         {
             0xC1, 0x06,
-            0xD4, 0x00,
+            0xD4, 0x01,
             player.X,
             player.Y
         };

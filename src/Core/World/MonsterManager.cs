@@ -44,12 +44,12 @@ public sealed class MonsterManager
             MonsterClass = 0,
             Name = "Goblin",
             MapId = 0,
-            X = 140,
-            Y = 120,
-            SpawnX = 140,
-            SpawnY = 120,
-            MaxHp = 80,
-            CurrentHp = 80,
+            X = 141,
+            Y = 138,
+            SpawnX = 141,
+            SpawnY = 138,
+            MaxHp = 40,
+            CurrentHp = 40,
             IsAlive = true
         });
 

@@ -1,9 +1,7 @@
 {
-    "Database": {
-        "Host": "localhost",
-        "Port": 3306,
-        "User": "root",
-        "Password": "CHANGE_ME",
-        "Database": "muonline"
-    }
+    "ServerName": "UnityMU Mobile Dev",
+    "PublicIp": "127.0.0.1",
+    "GameServerPort": 55901,
+    "MaxPlayers": 500,
+    "ConnectionString": "Server=127.0.0.1;Port=3306;Database=muonline;User=root;Password=CHANGE_ME;"
 }

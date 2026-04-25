@@ -168,7 +168,7 @@ public sealed class MovementService
         byte[] packet =
         {
             0xC1, 0x06,
-            0xD4, 0x00,
+            0xD4, 0x01,
             player.X,
             player.Y
         };

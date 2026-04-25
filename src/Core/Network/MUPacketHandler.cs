@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using MUServer.Core.Models;
 using MUServer.Core.Services;
 using MUServer.Core.World;
+using MUServer.Core.Network.Handlers;
 
 namespace MUServer.Core.Network;
 
@@ -28,6 +29,7 @@ public sealed class MUPacketHandler
     private readonly BroadcastService _broadcastService;
     private readonly MovementService _movementService;
     private readonly AutoCombatService _autoCombatService;
+    private readonly MovementPacketHandler _movementHandler;
 
     public MUPacketHandler(
     ILogger logger,
@@ -45,6 +47,11 @@ public sealed class MUPacketHandler
         _worldManager = worldManager;
         _movementService = movementService;
         _autoCombatService = autoCombatService;
+
+        _movementHandler = new MovementPacketHandler(
+            _movementService,
+            _worldManager,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<MovementPacketHandler>.Instance);
     }
 
     public async Task ProcessClientAsync(TcpClient client)
@@ -215,7 +222,7 @@ public sealed class MUPacketHandler
                 break;
 
             case 0xD4:
-                HandleMovementPacket(subCode, packet, stream, session);
+                _movementHandler.Handle(subCode, packet, stream, session);
                 break;
 
             case 0xD7:

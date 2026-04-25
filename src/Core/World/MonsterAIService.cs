@@ -11,8 +11,9 @@ public sealed class MonsterAIService
 
     private readonly MonsterManager _monsterManager;
     private readonly WorldManager _worldManager;
+    private readonly Dictionary<int, DateTime> _lastAttackUtcByMonster = new();
     private readonly ILogger<MonsterAIService> _logger;
-
+    
     private CancellationTokenSource? _cts;
 
     public MonsterAIService(
@@ -108,32 +109,55 @@ public sealed class MonsterAIService
         if (player.Stream is null || !player.Stream.CanWrite)
             return;
 
-        player.Character.CurrentLife -= AttackDamage;
-
         if (player.Character.CurrentLife <= 0)
+            return;
+
+        if (_lastAttackUtcByMonster.TryGetValue(monster.MonsterId, out DateTime lastAttack))
         {
-            player.Character.CurrentLife = 0;
-            
+            if ((DateTime.UtcNow - lastAttack).TotalMilliseconds < 1500)
+                return;
         }
 
-        byte[] packet =
+        _lastAttackUtcByMonster[monster.MonsterId] = DateTime.UtcNow;
+
+        const int damage = AttackDamage;
+
+        int remainingLife = Math.Max(0, player.Character.CurrentLife - damage);
+        player.Character.CurrentLife = (ushort)remainingLife;
+
+        bool dead = player.Character.CurrentLife <= 0;
+
+        byte[] hitPacket =
         {
-            0xC1, 0x08,
-            0xF4, 0x03,
-            (byte)monster.MonsterId,
-            AttackDamage,
-            (byte)Math.Min((int)player.Character.CurrentLife, 255),
-            (byte)(player.IsDead ? 1 : 0)
+        0xC1, 0x08,
+        0xF4, 0x03,
+        (byte)monster.MonsterId,
+        damage,
+        (byte)Math.Min((int)player.Character.CurrentLife, 255),
+        (byte)(dead ? 1 : 0)
+    };
+
+        player.Stream.Write(hitPacket, 0, hitPacket.Length);
+
+        if (dead)
+        {
+            byte[] deathPacket =
+            {
+            0xC1, 0x05,
+            0xF3, 0x23,
+            0x01
         };
 
-        player.Stream.Write(packet, 0, packet.Length);
+            player.Stream.Write(deathPacket, 0, deathPacket.Length);
+        }
 
         _logger.LogInformation(
-            "MonsterAI Attack Monster:{MonsterId} Player:{PlayerId} Damage:{Damage} HP:{HP}",
+            "MonsterAI Attack Monster:{MonsterId} Player:{PlayerId} Damage:{Damage} HP:{HP} Dead:{Dead}",
             monster.MonsterId,
             player.PlayerId,
-            AttackDamage,
-            player.Character.CurrentLife);
+            damage,
+            player.Character.CurrentLife,
+            dead);
     }
 
     private static void SendMonsterMove(Player receiver, Monster monster)

@@ -7,6 +7,7 @@ using MUServer.Core.Models;
 using MUServer.Core.Network.Handlers;
 using MUServer.Core.Services;
 using MUServer.Core.World;
+using MUServer.Core.Combat;
 
 namespace MUServer.Core.Network;
 
@@ -38,6 +39,8 @@ public sealed class MUPacketHandler
     private readonly WorldItemPacketHandler _worldItemHandler;
 
     private readonly CharacterPacketHandler _characterHandler;
+
+    private readonly SkillPacketHandler _skillHandler;
 
     public MUPacketHandler(
         ILogger logger,
@@ -81,6 +84,14 @@ public sealed class MUPacketHandler
             monsterManager,
             broadcastService,
             NullLogger<CharacterPacketHandler>.Instance);
+
+        SkillService skillService = new();
+
+        _skillHandler = new SkillPacketHandler(
+            worldManager,
+            monsterManager,
+            skillService,
+            NullLogger<SkillPacketHandler>.Instance);
     }
 
     public async Task ProcessClientAsync(TcpClient client)
@@ -253,6 +264,10 @@ public sealed class MUPacketHandler
 
             case 0xD7:
                 _combatHandler.Handle(subCode, packet, stream, session);
+                break;
+
+            case 0xE1:
+                _skillHandler.Handle(packet, stream, session);
                 break;
 
             default:

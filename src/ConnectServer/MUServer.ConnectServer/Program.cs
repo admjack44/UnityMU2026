@@ -139,7 +139,7 @@ namespace MUServer.ConnectServer
 
         static bool TryParsePacket(ref ReadOnlySequence<byte> buffer, out byte[] packet)
         {
-            packet = null;
+            packet = Array.Empty<byte>();
             if (buffer.Length < 2) return false;
 
             var reader = new SequenceReader<byte>(buffer);

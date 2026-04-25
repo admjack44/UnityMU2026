@@ -1,7 +1,0 @@
-{
-    "ServerName": "MU PEGASO Mobile Dev",
-    "PublicIp": "127.0.0.1",
-    "GameServerPort": 55901,
-    "MaxPlayers": 500,
-    "ConnectionString": "Server=127.0.0.1;Port=3306;Database=muonline;User=root;Password=MaxJhasper2024;"
-}

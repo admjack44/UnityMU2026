@@ -48,7 +48,11 @@ internal static class Program
 
         await MoveToAsync(stream, TargetX, TargetY, token);
 
-        byte droppedItemId = await KillMonsterAndWaitDropAsync(stream, GoblinId, token);
+        Console.WriteLine("\n--- CAST FIREBALL ---");
+        await SendPacketAsync(stream, new byte[] { 0xC1, 0x06, 0xE1, 0x01, 0x01, GoblinId }, token);
+        await Task.Delay(500, token);
+
+        byte droppedItemId = await KillMonsterAndWaitDropAsync(stream, (byte)GoblinId, token);
 
         await PickItemAsync(stream, droppedItemId, token);
 
@@ -218,6 +222,10 @@ internal static class Program
 
             case 0xD7:
                 HandleAttack(packet, subCode);
+                break;
+
+            case 0xE1:
+                HandleSkill(packet, subCode);
                 break;
 
             default:
@@ -417,6 +425,21 @@ internal static class Program
                     break;
                 }
 
+            case 0x10:
+                {
+                    byte monsterId = packet[4];
+                    byte damage = packet[5];
+                    byte remainingHp = packet[6];
+                    bool killed = packet[7] == 1;
+
+                    if (killed)
+                        State.MonsterKilled = true;
+
+                    Console.WriteLine(
+                        $"🔥 Skill Hit -> Monster:{monsterId} Damage:{damage} RemainingHp:{remainingHp} Killed:{(killed ? "YES" : "NO")}");
+                    break;
+                }
+
             case 0x02:
                 {
                     byte reasonCode = packet[4];
@@ -441,6 +464,26 @@ internal static class Program
                 Console.WriteLine($"⚠ Attack desconocido: {subCode:X2}");
                 break;
         }
+    }
+
+    private static void HandleSkill(byte[] packet, byte subCode)
+    {
+        if (subCode != 0x10)
+        {
+            Console.WriteLine($"⚠ Skill desconocido: {subCode:X2}");
+            return;
+        }
+
+        byte monsterId = packet[4];
+        byte damage = packet[5];
+        byte remainingHp = packet[6];
+        bool killed = packet[7] == 1;
+
+        if (killed)
+            State.MonsterKilled = true;
+
+        Console.WriteLine(
+            $"🔥 Skill Hit -> Monster:{monsterId} Damage:{damage} RemainingHp:{remainingHp} Killed:{(killed ? "YES" : "NO")}");
     }
 
     private static async Task SendPacketAsync(NetworkStream stream, byte[] packet, CancellationToken token)

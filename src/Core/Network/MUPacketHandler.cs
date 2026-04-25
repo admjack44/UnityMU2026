@@ -34,6 +34,9 @@ public sealed class MUPacketHandler
     private readonly MovementPacketHandler _movementHandler;
     private readonly CombatPacketHandler _combatHandler;
 
+    private readonly InventoryPacketHandler _inventoryHandler;
+    private readonly WorldItemPacketHandler _worldItemHandler;
+
     public MUPacketHandler(
         ILogger logger,
         CharacterService characterService,
@@ -61,6 +64,14 @@ public sealed class MUPacketHandler
             worldManager,
             autoCombatService,
             NullLogger<CombatPacketHandler>.Instance);
+
+        _inventoryHandler = new InventoryPacketHandler(
+            worldManager,
+            NullLogger<InventoryPacketHandler>.Instance);
+
+        _worldItemHandler = new WorldItemPacketHandler(
+            worldManager,
+            NullLogger<WorldItemPacketHandler>.Instance);
     }
 
     public async Task ProcessClientAsync(TcpClient client)
@@ -221,7 +232,7 @@ public sealed class MUPacketHandler
                 break;
 
             case 0xF4:
-                HandleWorldItemPacket(subCode, packet, stream, session);
+                _worldItemHandler.Handle(subCode, packet, stream, session);
                 break;
 
             case 0xD4:
@@ -279,7 +290,7 @@ public sealed class MUPacketHandler
                 break;
 
             case 0x31:
-                HandleMoveInventoryItem(packet, stream, session);
+                _inventoryHandler.HandleMoveItem(packet, stream, session);
                 break;
 
             default:

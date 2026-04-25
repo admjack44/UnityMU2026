@@ -70,6 +70,14 @@ internal static class Program
 
         autoCombatService.Start();
 
+        MonsterAIService monsterAIService = new(
+            monsterManager,
+            worldManager,
+            loggerFactory.CreateLogger<MonsterAIService>()
+        );
+
+        monsterAIService.Start();
+
         // DESPUÉS crear packetHandler
         MUPacketHandler packetHandler = new(
             logger,

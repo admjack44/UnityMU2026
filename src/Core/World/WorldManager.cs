@@ -162,6 +162,11 @@ public sealed class WorldManager
             : null;
     }
 
+    public List<Player> GetAllPlayers()
+    {
+        return _players.Values.ToList();
+    }
+
     public bool RemoveItem(int itemId)
     {
         return _items.Remove(itemId);

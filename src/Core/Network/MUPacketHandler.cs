@@ -30,6 +30,7 @@ public sealed class MUPacketHandler
     private readonly MovementService _movementService;
     private readonly AutoCombatService _autoCombatService;
     private readonly MovementPacketHandler _movementHandler;
+    private readonly CombatPacketHandler _combatHandler;
 
     public MUPacketHandler(
     ILogger logger,
@@ -52,6 +53,11 @@ public sealed class MUPacketHandler
             _movementService,
             _worldManager,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<MovementPacketHandler>.Instance);
+
+        _combatHandler = new CombatPacketHandler(
+            _monsterManager,
+            _worldManager,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<CombatPacketHandler>.Instance);
     }
 
     public async Task ProcessClientAsync(TcpClient client)

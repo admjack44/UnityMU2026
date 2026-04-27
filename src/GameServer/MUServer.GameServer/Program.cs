@@ -2,10 +2,12 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using MUServer.Core.Auth;
 using MUServer.Core.Network;
 using MUServer.Core.Repositories;
 using MUServer.Core.Services;
 using MUServer.Core.World;
+using MUServer.GameServer.Network;
 
 namespace MUServer.GameServer;
 
@@ -50,7 +52,6 @@ internal static class Program
             loggerFactory.CreateLogger<MonsterManager>()
         );
 
-        // PRIMERO crear movementService
         MovementService movementService = new(
             worldManager,
             characterService,
@@ -78,8 +79,7 @@ internal static class Program
 
         monsterAIService.Start();
 
-        // DESPUÉS crear packetHandler
-        MUPacketHandler packetHandler = new(
+        MUPacketHandler legacyPacketHandler = new(
             logger,
             characterService,
             broadcastService,
@@ -87,6 +87,15 @@ internal static class Program
             worldManager,
             movementService,
             autoCombatService
+        );
+
+        InMemoryAccountRepository authRepository = new();
+        MUServer.Core.Auth.AuthService authService = new(authRepository);
+        MobileGamePacketDispatcher mobileDispatcher = new(authService);
+
+        GameServerConnectionRouter connectionRouter = new(
+            legacyPacketHandler,
+            mobileDispatcher
         );
 
         TcpListener listener = new(IPAddress.Any, config.GameServerPort);
@@ -98,6 +107,8 @@ internal static class Program
         logger.LogInformation(" IP Pública: {PublicIp}", config.PublicIp);
         logger.LogInformation(" Puerto: {Port}", config.GameServerPort);
         logger.LogInformation(" Máximo jugadores: {MaxPlayers}", config.MaxPlayers);
+        logger.LogInformation(" Mobile protocol: ENABLED");
+        logger.LogInformation(" Legacy MU protocol: ENABLED");
         logger.LogInformation("==================================");
 
         using CancellationTokenSource cts = new();
@@ -107,6 +118,7 @@ internal static class Program
             e.Cancel = true;
             cts.Cancel();
             listener.Stop();
+            logger.LogInformation("Cerrando GameServer...");
         };
 
         try
@@ -115,8 +127,26 @@ internal static class Program
             {
                 TcpClient client = await listener.AcceptTcpClientAsync(cts.Token);
 
+                string endpoint = client.Client.RemoteEndPoint?.ToString() ?? "unknown";
+                logger.LogInformation("Cliente conectado al GameServer: {Endpoint}", endpoint);
+
                 _ = Task.Run(
-                    () => packetHandler.ProcessClientAsync(client),
+                    async () =>
+                    {
+                        try
+                        {
+                            await connectionRouter.ProcessClientAsync(client);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "Error procesando cliente {Endpoint}", endpoint);
+                        }
+                        finally
+                        {
+                            client.Close();
+                            logger.LogInformation("Cliente desconectado: {Endpoint}", endpoint);
+                        }
+                    },
                     cts.Token
                 );
             }
